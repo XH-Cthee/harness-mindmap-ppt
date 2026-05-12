@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800">
+  <rect width="1280" height="800" fill="#fffdf8"/>
+  <g transform="translate(240, 200)">
+    <rect width="160" height="120" rx="8" fill="#eef7f3" stroke="#183a4a" stroke-width="2"/>
+    <rect x="40" y="40" width="80" height="40" rx="4" fill="#d8894f" opacity="0.4"/>
+    <circle cx="80" cy="30" r="15" fill="#183a4a" opacity="0.2"/>
+  </g>
+  <g transform="translate(560, 200)">
+    <rect width="160" height="120" rx="8" fill="#eef7f3" stroke="#183a4a" stroke-width="2"/>
+    <rect x="30" y="35" width="35" height="50" rx="4" fill="#d8894f" opacity="0.4"/>
+    <rect x="75" y="35" width="35" height="50" rx="4" fill="#d8894f" opacity="0.3"/>
+    <rect x="120" y="35" width="20" height="50" rx="4" fill="#d8894f" opacity="0.2"/>
+  </g>
+  <g transform="translate(880, 200)">
+    <rect width="160" height="120" rx="8" fill="#eef7f3" stroke="#183a4a" stroke-width="2"/>
+    <circle cx="60" cy="60" r="25" fill="#d8894f" opacity="0.3"/>
+    <circle cx="100" cy="60" r="25" fill="#183a4a" opacity="0.2"/>
+  </g>
+  <g transform="translate(400, 480)">
+    <rect width="160" height="120" rx="8" fill="#183a4a"/>
+    <rect x="50" y="45" width="60" height="30" rx="15" fill="#d8894f"/>
+    <circle cx="65" cy="60" r="8" fill="#fffdf8"/>
+  </g>
+  <g transform="translate(720, 480)">
+    <rect width="160" height="120" rx="8" fill="#183a4a"/>
+    <rect x="40" y="30" width="80" height="60" rx="4" fill="#eef7f3" opacity="0.3"/>
+    <line x1="55" y1="45" x2="105" y2="45" stroke="#d8894f" stroke-width="3" opacity="0.5"/>
+    <line x1="55" y1="60" x2="95" y2="60" stroke="#d8894f" stroke-width="3" opacity="0.4"/>
+    <line x1="55" y1="75" x2="85" y2="75" stroke="#d8894f" stroke-width="3" opacity="0.3"/>
+  </g>
+  <line x1="400" y1="260" x2="560" y2="260" stroke="#183a4a" stroke-width="2" opacity="0.2"/>
+  <line x1="720" y1="260" x2="880" y2="260" stroke="#183a4a" stroke-width="2" opacity="0.2"/>
+  <line x1="480" y1="320" x2="480" y2="480" stroke="#183a4a" stroke-width="2" opacity="0.2"/>
+  <line x1="800" y1="320" x2="800" y2="480" stroke="#183a4a" stroke-width="2" opacity="0.2"/>
+</svg>

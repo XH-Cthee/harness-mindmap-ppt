@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800">
+  <rect width="1280" height="800" fill="#fffdf8"/>
+  <g transform="translate(140, 350)">
+    <rect width="200" height="100" rx="8" fill="#183a4a"/>
+    <polygon points="180,50 200,35 200,65" fill="#d8894f"/>
+  </g>
+  <g transform="translate(400, 350)">
+    <rect width="200" height="100" rx="8" fill="#eef7f3" stroke="#183a4a" stroke-width="2"/>
+    <polygon points="180,50 200,35 200,65" fill="#d8894f"/>
+    <circle cx="100" cy="50" r="20" fill="#d8894f" opacity="0.3"/>
+  </g>
+  <g transform="translate(660, 350)">
+    <rect width="200" height="100" rx="8" fill="#eef7f3" stroke="#183a4a" stroke-width="2"/>
+    <polygon points="180,50 200,35 200,65" fill="#d8894f"/>
+    <rect x="70" y="30" width="60" height="40" rx="4" fill="#d8894f" opacity="0.4"/>
+  </g>
+  <g transform="translate(920, 350)">
+    <rect width="200" height="100" rx="8" fill="#183a4a"/>
+    <circle cx="100" cy="50" r="25" fill="#d8894f"/>
+  </g>
+  <line x1="340" y1="400" x2="400" y2="400" stroke="#183a4a" stroke-width="3" opacity="0.4"/>
+  <line x1="600" y1="400" x2="660" y2="400" stroke="#183a4a" stroke-width="3" opacity="0.4"/>
+  <line x1="860" y1="400" x2="920" y2="400" stroke="#183a4a" stroke-width="3" opacity="0.4"/>
+  <path d="M 920 480 Q 640 600 400 480" stroke="#183a4a" stroke-width="2" fill="none" opacity="0.2" stroke-dasharray="8,8"/>
+</svg>
