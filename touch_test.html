@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>触控素质测试 | Touch Quality Test</title>
+    <style>
+        :root {
+            --md-sys-color-primary: #0b57d0;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #d3e3fd;
+            --md-sys-color-on-primary-container: #0842a0;
+            --md-sys-color-surface: #f8f9fa;
+            --md-sys-color-surface-variant: #e1e2ec;
+            --md-sys-color-on-surface: #191c20;
+            --md-sys-color-outline: #74777f;
+            --md-sys-color-error: #b3261e;
+            --font-family: 'Roboto', 'Segoe UI', Helvetica, Arial, sans-serif;
+            --card-radius: 16px;
+            --btn-radius: 100px;
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation; /* 禁止双击缩放 */
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: #f0f2f5;
+            color: var(--md-sys-color-on-surface);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 100vh;
+        }
+
+        h1, h2 {
+            font-weight: 400;
+            margin: 0 0 10px 0;
+        }
+        
+        h1 { font-size: 1.5rem; color: var(--md-sys-color-primary); }
+        h2 { font-size: 1.2rem; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                grid-template-columns: 1fr 350px;
+            }
+        }
+
+        /* Card Styles */
+        .card {
+            background: white;
+            border-radius: var(--card-radius);
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Reaction Test Section */
+        .reaction-area {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+            position: relative;
+            overflow: hidden;
+            background-color: var(--md-sys-color-surface);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        #tap-btn {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border: none;
+            font-size: 1.2rem;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: transform 0.1s, background-color 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #tap-btn:active, #tap-btn.pressed {
+            transform: scale(0.92);
+            background-color: #002e85;
+        }
+
+        #tap-btn span {
+            pointer-events: none;
+        }
+
+        .sub-text {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        /* Ripple Effect */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0);
+            animation: ripple-animation 0.6s linear;
+            pointer-events: none;
+        }
+
+        @keyframes ripple-animation {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* Stats Panel */
+        .stats-panel {
+            background: var(--md-sys-color-surface);
+            border-radius: 12px;
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--md-sys-color-surface-variant);
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .stat-row:last-child { border-bottom: none; }
+        .stat-row.good { color: green; }
+        .stat-row.bad { color: var(--md-sys-color-error); }
+
+        .avg-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--md-sys-color-primary);
+            text-align: right;
+            margin-bottom: 10px;
+        }
+
+        /* Accuracy Test Section */
+        .accuracy-card {
+            grid-column: 1 / -1;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: white;
+            border: 1px solid var(--md-sys-color-surface-variant);
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .accuracy-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .info-item strong {
+            display: block;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        .info-item span {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        button.reset-btn {
+            background: transparent;
+            border: 1px solid var(--md-sys-color-outline);
+            color: var(--md-sys-color-on-surface);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        button.reset-btn:hover {
+            background: rgba(0,0,0,0.05);
+        }
+
+        /* Calibration Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        .input-group label { display: block; margin-bottom: 5px; font-size: 0.9rem;}
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn-primary {
+            background: var(--md-sys-color-primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>触控素质测试</h1>
+
+    <div class="container">
+        <!-- Reaction Test -->
+        <div class="card">
+            <h2>1. 触控响应速度 (Latency)</h2>
+            <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">快速点击下方的蓝色按钮。系统将记录从触摸发生到视觉反馈的处理延迟。</p>
+            
+            <div class="reaction-area">
+                <button id="tap-btn">
+                    <span>点击测试</span>
+                    <span class="sub-text">Tap Me</span>
+                </button>
+            </div>
+
+            <div class="stats-panel">
+                <div class="avg-display">平均：<span id="avg-latency">--</span> ms</div>
+                <div id="latency-list">
+                    <!-- Records will appear here -->
+                </div>
+                <div style="text-align: right; margin-top: 10px;">
+                    <button class="reset-btn" onclick="resetLatency()">清空记录</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Panel for Summary (Desktop) or Bottom (Mobile) -->
+        <div class="card" style="justify-content: center; align-items: center; text-align: center;">
+            <h2>测试说明</h2>
+            <p style="font-size: 0.9rem; line-height: 1.6; color: #555;">
+                <strong>响应时间:</strong> 衡量屏幕控制器处理触摸信号并更新画面的速度。数值越低越好。<br><br>
+                <strong>触控精度:</strong> 衡量手指点击位置与系统识别位置的偏差。受屏幕贴合工艺和驱动算法影响。<br><br>
+                <em>提示：请在安静环境下测试，关闭后台高负载应用以获得准确数据。</em>
+            </p>
+            <button class="btn-primary" style="margin-top: 20px;" onclick="openCalibration()">校准屏幕 PPI</button>
+        </div>
+
+        <!-- Accuracy Test -->
+        <div class="card accuracy-card">
+            <h2>2. 触控精度测试 (Accuracy)</h2>
+            <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">点击网格中的红色交叉点。系统将计算您的实际点击点与目标点的物理距离偏差。</p>
+            
+            <div class="canvas-container" id="canvas-wrapper">
+                <canvas id="accuracy-canvas"></canvas>
+            </div>
+
+            <div class="accuracy-info">
+                <div class="info-item">
+                    <strong>当前偏差</strong>
+                    <span id="current-deviation">-- mm</span>
+                </div>
+                <div class="info-item">
+                    <strong>平均偏差</strong>
+                    <span id="avg-deviation">-- mm</span>
+                </div>
+                <div class="info-item">
+                    <strong>采样数</strong>
+                    <span id="sample-count">0</span>
+                </div>
+                <button class="reset-btn" onclick="resetAccuracy()">重置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calibration Modal -->
+    <div id="calib-modal" class="modal">
+        <div class="modal-content">
+            <h2>屏幕校准</h2>
+            <p>为了将像素偏差转换为毫米 (mm)，请输入您设备的屏幕像素密度 (PPI)。</p>
+            <div class="input-group">
+                <label>PPI (Pixels Per Inch)</label>
+                <input type="number" id="ppi-input" value="300" placeholder="例如：300, 400">
+                <small style="color:#666">常见值：手机 (300-450), 平板 (200-300), 笔记本 (100-200)</small>
+            </div>
+            <div class="modal-actions">
+                <button class="reset-btn" onclick="closeCalibration()">取消</button>
+                <button class="btn-primary" onclick="saveCalibration()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Global State ---
+        const state = {
+            latency: {
+                records: [],
+                sum: 0
+            },
+            accuracy: {
+                records: [], // in mm
+                sum: 0,
+                ppi: 300, // Default fallback
+                targets: []
+            }
+        };
+
+        // --- Utility: Get PPI ---
+        function getMMPerPixel() {
+            // 1 inch = 25.4 mm
+            // Pixels per mm = PPI / 25.4
+            // mm per pixel = 25.4 / PPI
+            return 25.4 / state.accuracy.ppi;
+        }
+
+        // ==========================
+        // 1. Latency Test Logic
+        // ==========================
+        const tapBtn = document.getElementById('tap-btn');
+        const latencyList = document.getElementById('latency-list');
+        const avgLatencySpan = document.getElementById('avg-latency');
+
+        tapBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault(); // Prevent mouse emulation
+            
+            const startTime = performance.now();
+            
+            // Visual Feedback (Immediate)
+            tapBtn.classList.add('pressed');
+            createRipple(e, tapBtn);
+
+            // Calculate time taken to process event and trigger UI update
+            // Using requestAnimationFrame to measure when the browser actually paints the change
+            requestAnimationFrame(() => {
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                recordLatency(duration);
+                
+                // Reset visual state slightly later to allow user to see the press
+                setTimeout(() => {
+                    tapBtn.classList.remove('pressed');
+                }, 150);
+            });
+        });
+
+        function createRipple(event, element) {
+            const circle = document.createElement("span");
+            const diameter = Math.max(element.clientWidth, element.clientHeight);
+            const radius = diameter / 2;
+
+            const rect = element.getBoundingClientRect();
+            
+            circle.style.width = circle.style.height = `${diameter}px`;
+            circle.style.left = `${event.clientX - rect.left - radius}px`;
+            circle.style.top = `${event.clientY - rect.top - radius}px`;
+            circle.classList.add("ripple");
+
+            const ripple = element.getElementsByClassName("ripple")[0];
+            if (ripple) {
+                ripple.remove();
+            }
+
+            element.appendChild(circle);
+        }
+
+        function recordLatency(ms) {
+            state.latency.records.unshift(ms);
+            if (state.latency.records.length > 20) state.latency.records.pop(); // Keep last 20
+            
+            updateLatencyUI(ms);
+        }
+
+        function updateLatencyUI(lastVal) {
+            // Update List
+            const div = document.createElement('div');
+            div.className = `stat-row ${lastVal < 50 ? 'good' : (lastVal > 100 ? 'bad' : '')}`;
+            div.innerHTML = `<span>Test #${state.latency.records.length}</span> <span>${lastVal.toFixed(2)} ms</span>`;
+            latencyList.prepend(div);
+            if (latencyList.children.length > 10) latencyList.lastChild.remove();
+
+            // Update Avg
+            const sum = state.latency.records.reduce((a, b) => a + b, 0);
+            const avg = sum / state.latency.records.length;
+            avgLatencySpan.textContent = avg.toFixed(2);
+        }
+
+        function resetLatency() {
+            state.latency.records = [];
+            latencyList.innerHTML = '';
+            avgLatencySpan.textContent = '--';
+        }
+
+        // ==========================
+        // 2. Accuracy Test Logic
+        // ==========================
+        const canvas = document.getElementById('accuracy-canvas');
+        const ctx = canvas.getContext('2d');
+        const wrapper = document.getElementById('canvas-wrapper');
+        const currentDevSpan = document.getElementById('current-deviation');
+        const avgDevSpan = document.getElementById('avg-deviation');
+        const sampleCountSpan = document.getElementById('sample-count');
+
+        let currentTarget = null;
+        let isDrawing = false;
+
+        function resizeCanvas() {
+            const rect = wrapper.getBoundingClientRect();
+            // Handle High DPI screens for sharp rendering
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
+            
+            generateTargets(rect.width, rect.height);
+            drawGrid();
+        }
+
+        function generateTargets(w, h) {
+            state.accuracy.targets = [];
+            const cols = 5;
+            const rows = 4;
+            const padding = 40;
+            const stepX = (w - padding * 2) / (cols - 1);
+            const stepY = (h - padding * 2) / (rows - 1);
+
+            for (let i = 0; i < cols; i++) {
+                for (let j = 0; j < rows; j++) {
+                    state.accuracy.targets.push({
+                        x: padding + i * stepX,
+                        y: padding + j * stepY
+                    });
+                }
+            }
+            pickNewTarget();
+        }
+
+        function pickNewTarget() {
+            if (state.accuracy.targets.length === 0) return;
+            const randomIndex = Math.floor(Math.random() * state.accuracy.targets.length);
+            currentTarget = state.accuracy.targets[randomIndex];
+            drawGrid();
+        }
+
+        function drawGrid() {
+            const w = canvas.width / (window.devicePixelRatio || 1);
+            const h = canvas.height / (window.devicePixelRatio || 1);
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Draw Grid Lines
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            // Vertical
+            const cols = 5;
+            const padding = 40;
+            const stepX = (w - padding * 2) / (cols - 1);
+            for(let i=0; i<cols; i++) {
+                let x = padding + i * stepX;
+                ctx.moveTo(x, padding);
+                ctx.lineTo(x, h - padding);
+            }
+            // Horizontal
+            const rows = 4;
+            const stepY = (h - padding * 2) / (rows - 1);
+            for(let i=0; i<rows; i++) {
+                let y = padding + i * stepY;
+                ctx.moveTo(padding, y);
+                ctx.lineTo(w - padding, y);
+            }
+            ctx.stroke();
+
+            // Draw Targets
+            state.accuracy.targets.forEach((pt, index) => {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+                if (pt === currentTarget) {
+                    ctx.fillStyle = '#b3261e'; // Red for active
+                    ctx.fill();
+                    // Pulse effect could be added here
+                } else {
+                    ctx.strokeStyle = '#ccc';
+                    ctx.stroke();
+                }
+            });
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (!currentTarget) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // Calculate Distance in Pixels
+            const dx = clickX - currentTarget.x;
+            const dy = clickY - currentTarget.y;
+            const distPx = Math.sqrt(dx*dx + dy*dy);
+
+            // Convert to MM
+            const mmPerPixel = getMMPerPixel();
+            const distMm = distPx * mmPerPixel;
+
+            // Record
+            state.accuracy.records.push(distMm);
+            state.accuracy.sum += distMm;
+
+            // Visualize Result
+            drawResult(clickX, clickY, distMm);
+
+            // Update UI
+            currentDevSpan.textContent = distMm.toFixed(2);
+            const avg = state.accuracy.sum / state.accuracy.records.length;
+            avgDevSpan.textContent = avg.toFixed(2);
+            sampleCountSpan.textContent = state.accuracy.records.length;
+
+            // Next Target after short delay
+            setTimeout(() => {
+                pickNewTarget();
+            }, 800);
+        });
+
+        function drawResult(clickX, clickY, errorMm) {
+            drawGrid(); // Clear previous result but keep grid
+            
+            // Draw Actual Click
+            ctx.beginPath();
+            ctx.arc(clickX, clickY, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#0b57d0'; // Blue
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw Line between Target and Click
+            ctx.beginPath();
+            ctx.moveTo(currentTarget.x, currentTarget.y);
+            ctx.lineTo(clickX, clickY);
+            ctx.strokeStyle = '#0b57d0';
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw Error Text
+            ctx.fillStyle = '#191c20';
+            ctx.font = '14px Roboto';
+            ctx.fillText(`${errorMm.toFixed(2)} mm`, clickX + 15, clickY);
+        }
+
+        function resetAccuracy() {
+            state.accuracy.records = [];
+            state.accuracy.sum = 0;
+            currentDevSpan.textContent = '-- mm';
+            avgDevSpan.textContent = '-- mm';
+            sampleCountSpan.textContent = '0';
+            pickNewTarget();
+        }
+
+        // Initialize Canvas
+        window.addEventListener('resize', resizeCanvas);
+        // Initial call needs a slight delay to ensure layout is ready
+        setTimeout(resizeCanvas, 100);
+
+
+        // ==========================
+        // 3. Calibration Modal Logic
+        // ==========================
+        const modal = document.getElementById('calib-modal');
+        const ppiInput = document.getElementById('ppi-input');
+
+        function openCalibration() {
+            modal.style.display = 'flex';
+        }
+
+        function closeCalibration() {
+            modal.style.display = 'none';
+        }
+
+        function saveCalibration() {
+            const val = parseFloat(ppiInput.value);
+            if (val && val > 0) {
+                state.accuracy.ppi = val;
+                // Redraw to adjust any potential future calculations (though logic uses dynamic getter)
+                alert(`PPI 已设置为 ${val}. 精度计算将基于此数值。`);
+                closeCalibration();
+            } else {
+                alert('请输入有效的 PPI 数值');
+            }
+        }
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                closeCalibration();
+            }
+        }
+
+    </script>
+</body>
+</html>
