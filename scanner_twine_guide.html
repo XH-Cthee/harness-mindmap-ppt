@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扫描仪 TWAIN 驱动与上层软件功能分类指南</title>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #f1f3f4;
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a4a5a;
+            --text-tertiary: #7a7a8a;
+            --border-color: #e1e4e8;
+            --accent-blue: #2563eb;
+            --accent-blue-light: #dbeafe;
+            --accent-green: #059669;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #d97706;
+            --accent-orange-light: #fef3c7;
+            --accent-red: #dc2626;
+            --accent-red-light: #fee2e2;
+            --accent-purple: #7c3aed;
+            --accent-purple-light: #ede9fe;
+            --accent-teal: #0891b2;
+            --accent-teal-light: #cffafe;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-hover: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 48px 24px;
+            text-align: center;
+            margin-bottom: 32px;
+            border-radius: 0 0 24px 24px;
+        }
+        .header h1 { font-size: 28px; font-weight: 600; margin-bottom: 12px; letter-spacing: -0.5px; }
+        .header p { font-size: 15px; opacity: 0.85; max-width: 700px; margin: 0 auto; }
+
+        /* Section Cards */
+        .section {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--accent-blue-light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title .icon {
+            width: 32px; height: 32px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+
+        /* Tables */
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            font-size: 13px;
+        }
+        .compare-table th {
+            background: var(--bg-secondary);
+            padding: 12px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+        }
+        .compare-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+        .compare-table tr:hover td { background: var(--bg-secondary); }
+
+        .cap-name {
+            font-family: "SF Mono", Monaco, monospace;
+            font-size: 11px;
+            color: var(--accent-purple);
+            background: var(--accent-purple-light);
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 3px;
+            white-space: nowrap;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .badge-required { background: var(--accent-green-light); color: var(--accent-green); }
+        .badge-basic { background: var(--accent-blue-light); color: var(--accent-blue); }
+        .badge-extend { background: var(--accent-orange-light); color: var(--accent-orange); }
+        .badge-advanced { background: var(--accent-purple-light); color: var(--accent-purple); }
+        .badge-optional { background: var(--bg-tertiary); color: var(--text-tertiary); }
+
+        /* Feature Cards */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .feature-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+        .feature-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+        .feature-card .card-header {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+        }
+        .feature-card .card-icon {
+            width: 36px; height: 36px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+        .feature-card .card-title { font-size: 15px; font-weight: 600; }
+        .feature-card .card-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-top: 8px; }
+        .feature-card .card-caps { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+
+        /* Category tabs */
+        .category-tabs {
+            display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+        }
+        .category-tab {
+            padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500;
+            cursor: pointer; border: 1px solid var(--border-color);
+            background: var(--bg-secondary); color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        .category-tab.active {
+            background: var(--accent-blue); color: white; border-color: var(--accent-blue);
+        }
+
+        /* Summary boxes */
+        .summary-box {
+            border-radius: 12px; padding: 16px; margin-top: 16px;
+            border-left: 4px solid;
+        }
+        .summary-box h4 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+        .summary-box p { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+        .summary-box.blue { background: var(--accent-blue-light); border-left-color: var(--accent-blue); }
+        .summary-box.blue h4 { color: var(--accent-blue); }
+        .summary-box.orange { background: var(--accent-orange-light); border-left-color: var(--accent-orange); }
+        .summary-box.orange h4 { color: var(--accent-orange); }
+        .summary-box.green { background: var(--accent-green-light); border-left-color: var(--accent-green); }
+        .summary-box.green h4 { color: var(--accent-green); }
+        .summary-box.purple { background: var(--accent-purple-light); border-left-color: var(--accent-purple); }
+        .summary-box.purple h4 { color: var(--accent-purple); }
+
+        /* Legend */
+        .legend {
+            display: flex; flex-wrap: wrap; gap: 12px;
+            margin-top: 16px; padding: 14px;
+            background: var(--bg-secondary); border-radius: 8px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+
+        /* Notes */
+        .note {
+            font-size: 12px; color: var(--text-tertiary); margin-top: 16px;
+            padding: 12px; background: var(--bg-secondary); border-radius: 8px; line-height: 1.6;
+        }
+
+        /* Two column layout for software */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+        /* Vendor comparison mini table */
+        .vendor-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 12px; }
+        .vendor-table th, .vendor-table td { padding: 8px 10px; border: 1px solid var(--border-color); text-align: center; }
+        .vendor-table th { background: var(--bg-secondary); font-weight: 600; }
+        .vendor-table td:first-child { text-align: left; font-weight: 500; }
+        .vendor-table .check { color: var(--accent-green); font-weight: 600; }
+        .vendor-table .partial { color: var(--accent-orange); font-weight: 600; }
+        .vendor-table .cross { color: var(--accent-red); }
+
+        /* Print */
+        @media print {
+            body { background: white; }
+            .section { box-shadow: none; break-inside: avoid; }
+            .header { background: #1a1a2e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 12px; }
+            .header { padding: 32px 16px; }
+            .header h1 { font-size: 22px; }
+            .section { padding: 20px; }
+            .compare-table { font-size: 11px; }
+            .compare-table th, .compare-table td { padding: 8px 10px; }
+            .feature-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>扫描仪 TWAIN 驱动与上层软件功能分类指南</h1>
+        <p>参考富士通 PaperStream、佳能 CaptureOnTouch、爱普生 ScanSmart 等龙头企业产品功能，按基础/拓展功能重新划分，用于测试用例设计</p>
+    </div>
+
+    <div class="container">
+
+        <!-- Section 1: TWAIN Driver -->
+        <div class="section">
+            <div class="section-title">
+                <div class="icon" style="background: var(--accent-blue-light); color: var(--accent-blue);">🔧</div>
+                TWAIN 驱动层功能划分
+            </div>
+
+            <h3 style="font-size: 16px; margin: 20px 0 12px; color: var(--accent-green);">▎基础功能（必须实现，否则无法完成基本扫描）</h3>
+            <table class="compare-table">
+                <thead>
+                    <tr>
+                        <th style="width: 18%;">功能项</th>
+                        <th style="width: 30%;">功能描述</th>
+                        <th style="width: 22%;">对应 Capability</th>
+                        <th style="width: 14%;">必备程度</th>
+                        <th style="width: 16%;">适用机型</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>颜色模式设置</strong></td>
+                        <td>支持黑白、灰度、RGB 彩色三种像素类型切换</td>
+                        <td><span class="cap-name">ICAP_PIXELTYPE</span><span class="cap-name">ICAP_BITDEPTH</span></td>
+                        <td><span class="badge badge-required">核心必备</span></td>
+                        <td>所有机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>分辨率设置</strong></td>
+                        <td>X/Y 轴 DPI 可配置，覆盖 75~1200 dpi 常用档位</td>
+                        <td><span class="cap-name">ICAP_XRESOLUTION</span><span class="cap-name">ICAP_YRESOLUTION</span></td>
+                        <td><span class="badge badge-required">核心必备</span></td>
+                        <td>所有机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>页面尺寸设置</strong></td>
+                        <td>支持 A4、Letter、Legal 等标准尺寸及自定义尺寸</td>
+                        <td><span class="cap-name">ICAP_SUPPORTEDSIZES</span><span class="cap-name">ICAP_FRAMES</span></td>
+                        <td><span class="badge badge-required">核心必备</span></td>
+                        <td>所有机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>数据传输机制</strong></td>
+                        <td>支持 Native / Memory / File 至少一种传输模式</td>
+                        <td><span class="cap-name">ICAP_XFERMECH</span><span class="cap-name">CAP_XFERCOUNT</span></td>
+                        <td><span class="badge badge-required">核心必备</span></td>
+                        <td>所有机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>设备在线检测</strong></td>
+                        <td>返回扫描仪是否就绪可用</td>
+                        <td><span class="cap-name">CAP_DEVICEONLINE</span></td>
+                        <td><span class="badge badge-required">核心必备</span></td>
+                        <td>所有机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>无 UI 静默扫描</strong></td>
+                        <td>支持禁用数据源 UI，由上层软件完全控制</td>
+                        <td><span class="cap-name">CAP_UICONTROLLABLE</span></td>
+                        <td><span class="badge badge-required">核心必备</span></td>
+                        <td>所有机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>图像格式协商</strong></td>
+                        <td>支持 BMP/JPEG/TIFF/PNG/PDF 等输出格式声明</td>
+                        <td><span class="cap-name">ICAP_IMAGEFILEFORMAT</span></td>
+                        <td><span class="badge badge-basic">基础必备</span></td>
+                        <td>所有机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>亮度/对比度调节</strong></td>
+                        <td>基础图像质量参数可调</td>
+                        <td><span class="cap-name">ICAP_BRIGHTNESS</span><span class="cap-name">ICAP_CONTRAST</span></td>
+                        <td><span class="badge badge-basic">基础必备</span></td>
+                        <td>所有机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ADF 进纸器控制</strong></td>
+                        <td>启用/禁用 ADF，切换 ADF/平板扫描源</td>
+                        <td><span class="cap-name">CAP_FEEDERENABLED</span></td>
+                        <td><span class="badge badge-required">ADF必备</span></td>
+                        <td>ADF/混合</td>
+                    </tr>
+                    <tr>
+                        <td><strong>自动进纸</strong></td>
+                        <td>连续自动送入多页文档</td>
+                        <td><span class="cap-name">CAP_AUTOFEED</span></td>
+                        <td><span class="badge badge-required">ADF必备</span></td>
+                        <td>ADF/混合</td>
+                    </tr>
+                    <tr>
+                        <td><strong>纸张状态检测</strong></td>
+                        <td>检测 ADF 托盘是否有文档，避免空扫</td>
+                        <td><span class="cap-name">CAP_FEEDERLOADED</span></td>
+                        <td><span class="badge badge-required">ADF必备</span></td>
+                        <td>ADF/混合</td>
+                    </tr>
+                    <tr>
+                        <td><strong>连续扫描页数</strong></td>
+                        <td>支持设置扫描张数，-1 表示扫描全部</td>
+                        <td><span class="cap-name">CAP_XFERCOUNT</span></td>
+                        <td><span class="badge badge-required">ADF必备</span></td>
+                        <td>ADF/混合</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="font-size: 16px; margin: 28px 0 12px; color: var(--accent-orange);">▎拓展功能（增强体验与效率，高端/生产级设备支持）</h3>
+            <table class="compare-table">
+                <thead>
+                    <tr>
+                        <th style="width: 18%;">功能项</th>
+                        <th style="width: 30%;">功能描述</th>
+                        <th style="width: 22%;">对应 Capability</th>
+                        <th style="width: 14%;">必备程度</th>
+                        <th style="width: 16%;">适用机型</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>双面扫描</strong></td>
+                        <td>单通或双通方式同时扫描文档正反面</td>
+                        <td><span class="cap-name">CAP_DUPLEX</span><span class="cap-name">CAP_DUPLEXENABLED</span></td>
+                        <td><span class="badge badge-extend">拓展功能</span></td>
+                        <td>高端 ADF</td>
+                    </tr>
+                    <tr>
+                        <td><strong>重张检测</strong></td>
+                        <td>超声波或长度检测多页重叠进纸</td>
+                        <td><span class="cap-name">CAP_DOUBLEFEEDDETECTION</span><span class="cap-name">CAP_DOUBLEFEEDDETECTIONRESPONSE</span></td>
+                        <td><span class="badge badge-extend">拓展功能</span></td>
+                        <td>高端 ADF</td>
+                    </tr>
+                    <tr>
+                        <td><strong>自动介质感应</strong></td>
+                        <td>ADF 有纸则从 ADF 扫，无纸则自动切平板</td>
+                        <td><span class="cap-name">CAP_AUTOMATICSENSEMEDIUM</span></td>
+                        <td><span class="badge badge-extend">拓展功能</span></td>
+                        <td>混合机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>进纸顺序控制</strong></td>
+                        <td>正序/倒序进纸，控制输出页序</td>
+                        <td><span class="cap-name">CAP_FEEDERORDER</span></td>
+                        <td><span class="badge badge-extend">拓展功能</span></td>
+                        <td>ADF/混合</td>
+                    </tr>
+                    <tr>
+                        <td><strong>自动纠偏</strong></td>
+                        <td>自动检测并校正倾斜文档</td>
+                        <td><span class="cap-name">ICAP_AUTOMATICDESKEW</span></td>
+                        <td><span class="badge badge-extend">拓展功能</span></td>
+                        <td>高端机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>自动边框检测</strong></td>
+                        <td>自动识别文档边缘并裁切空白</td>
+                        <td><span class="cap-name">ICAP_AUTOMATICBORDERDETECTION</span><span class="cap-name">ICAP_AUTOSIZE</span></td>
+                        <td><span class="badge badge-extend">拓展功能</span></td>
+                        <td>高端机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>空白页检测/剔除</strong></td>
+                        <td>自动识别并丢弃空白页</td>
+                        <td><span class="cap-name">ICAP_AUTODISCARDBLANKPAGES</span></td>
+                        <td><span class="badge badge-extend">拓展功能</span></td>
+                        <td>高端 ADF</td>
+                    </tr>
+                    <tr>
+                        <td><strong>自动旋转</strong></td>
+                        <td>根据内容方向自动旋转图像至正向</td>
+                        <td><span class="cap-name">ICAP_AUTOMATICROTATE</span></td>
+                        <td><span class="badge badge-extend">拓展功能</span></td>
+                        <td>高端机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>条码检测</strong></td>
+                        <td>扫描时自动识别一维/二维条码</td>
+                        <td><span class="cap-name">ICAP_BARCODEDETECTIONENABLED</span><span class="cap-name">ICAP_SUPPORTEDBARCODETYPES</span></td>
+                        <td><span class="badge badge-advanced">高级选配</span></td>
+                        <td>专业机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>补丁码检测</strong></td>
+                        <td>识别 Patch Code 分隔页自动拆分文档</td>
+                        <td><span class="cap-name">ICAP_PATCHCODEDETECTIONENABLED</span></td>
+                        <td><span class="badge badge-advanced">高级选配</span></td>
+                        <td>专业机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>图像压缩</strong></td>
+                        <td>JPEG、CCITT G3/G4 等压缩算法支持</td>
+                        <td><span class="cap-name">ICAP_COMPRESSION</span><span class="cap-name">ICAP_JPEGQUALITY</span></td>
+                        <td><span class="badge badge-extend">拓展功能</span></td>
+                        <td>所有机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>背书器/打印器</strong></td>
+                        <td>扫描后在原稿背面打印页码或标记</td>
+                        <td><span class="cap-name">CAP_ENDORSER</span><span class="cap-name">CAP_PRINTER</span></td>
+                        <td><span class="badge badge-advanced">高级选配</span></td>
+                        <td>专业机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>自动颜色检测</strong></td>
+                        <td>自动判断页面彩色/黑白并切换模式</td>
+                        <td><span class="cap-name">ICAP_AUTOMATICCOLORENABLED</span></td>
+                        <td><span class="badge badge-extend">拓展功能</span></td>
+                        <td>高端机型</td>
+                    </tr>
+                    <tr>
+                        <td><strong>伽马校正</strong></td>
+                        <td>调整图像伽马曲线优化显示效果</td>
+                        <td><span class="cap-name">ICAP_GAMMA</span></td>
+                        <td><span class="badge badge-optional">可选</span></td>
+                        <td>所有机型</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="legend">
+                <div class="legend-item"><span class="badge badge-required">核心必备</span> 无此功能则无法完成基本扫描</div>
+                <div class="legend-item"><span class="badge badge-basic">基础必备</span> 通用基础功能，常规设备均应支持</div>
+                <div class="legend-item"><span class="badge badge-extend">拓展功能</span> 提升效率，中高端设备支持</div>
+                <div class="legend-item"><span class="badge badge-advanced">高级选配</span> 专业/生产级设备特有功能</div>
+            </div>
+        </div>
+
+        <!-- Section 2: Upper Software -->
+        <div class="section">
+            <div class="section-title">
+                <div class="icon" style="background: var(--accent-green-light); color: var(--accent-green);">💻</div>
+                上层软件功能划分
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--accent-green);">▎基础功能（软件必须实现）</h3>
+                    <table class="compare-table">
+                        <thead>
+                            <tr><th>功能模块</th><th>具体功能点</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>设备管理</strong></td>
+                                <td>
+                                    扫描仪枚举与选择<br>
+                                    设备在线状态检测<br>
+                                    默认设备记忆
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>扫描控制</strong></td>
+                                <td>
+                                    启动/停止/取消扫描<br>
+                                    ADF/平板模式切换<br>
+                                    单面/双面扫描选项<br>
+                                    连续多页扫描控制
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>参数配置</strong></td>
+                                <td>
+                                    分辨率设置 (DPI)<br>
+                                    颜色模式选择<br>
+                                    页面尺寸选择<br>
+                                    亮度/对比度调节<br>
+                                    输出格式选择 (PDF/JPG/TIFF/PNG)
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>图像预览</strong></td>
+                                <td>
+                                    扫描后缩略图预览<br>
+                                    页面旋转/删除/重排序<br>
+                                    多页文档浏览
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>文件输出</strong></td>
+                                <td>
+                                    保存到本地目录<br>
+                                    文件名自定义/自动命名<br>
+                                    多页 PDF/TIFF 合并<br>
+                                    单页/多页输出选项
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>异常处理</strong></td>
+                                <td>
+                                    扫描中断恢复<br>
+                                    卡纸/缺纸错误提示<br>
+                                    设备断开检测
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--accent-orange);">▎拓展功能（增强竞争力）</h3>
+                    <table class="compare-table">
+                        <thead>
+                            <tr><th>功能模块</th><th>具体功能点</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>图像处理</strong></td>
+                                <td>
+                                    自动纠偏 (Deskew)<br>
+                                    自动裁边/去黑边<br>
+                                    空白页自动剔除<br>
+                                    自动旋转至正向<br>
+                                    打孔去除<br>
+                                    背景平滑/条纹去除
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>OCR 识别</strong></td>
+                                <td>
+                                    可搜索 PDF 生成<br>
+                                    全文 OCR 提取<br>
+                                    区域 OCR (Zonal OCR)<br>
+                                    导出 Word/Excel/PPT<br>
+                                    智能文件命名（基于 OCR）
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>条码/补丁码</strong></td>
+                                <td>
+                                    一维/二维条码识别<br>
+                                    条码驱动的文件命名<br>
+                                    Patch Code 分隔页识别<br>
+                                    条码分类归档
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>工作流自动化</strong></td>
+                                <td>
+                                    扫描模板/配置文件<br>
+                                    一键快速扫描<br>
+                                    扫描后自动邮件发送<br>
+                                    扫描后自动打印<br>
+                                    批量任务队列管理
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>云服务集成</strong></td>
+                                <td>
+                                    扫描至云盘 (OneDrive/Google Drive/Dropbox)<br>
+                                    扫描至 SharePoint<br>
+                                    扫描至 FTP/SFTP<br>
+                                    扫描至网络文件夹
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>文档管理</strong></td>
+                                <td>
+                                    智能文档分类<br>
+                                    索引字段自定义<br>
+                                    元数据提取<br>
+                                    文档版本管理<br>
+                                    全文检索
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>质量管控</strong></td>
+                                <td>
+                                    AIQC 图像质量检查<br>
+                                    彩色边框异常标记<br>
+                                    扫描后校正 (ASC)<br>
+                                    批量质量报告
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>安全合规</strong></td>
+                                <td>
+                                    敏感信息脱敏 (Redaction)<br>
+                                    加密 PDF 输出<br>
+                                    操作审计日志<br>
+                                    用户权限管理
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>系统集成</strong></td>
+                                <td>
+                                    TWAIN / WIA / ISIS 多协议<br>
+                                    COM/ActiveX 组件<br>
+                                    Web 扫描插件/代理<br>
+                                    ERP/CRM/ECM 系统对接
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Industry Comparison -->
+        <div class="section">
+            <div class="section-title">
+                <div class="icon" style="background: var(--accent-purple-light); color: var(--accent-purple);">🏭</div>
+                龙头企业产品功能对标
+            </div>
+
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                以下对比富士通 PaperStream Capture、佳能 CaptureOnTouch、爱普生 ScanSmart 三款主流扫描软件的功能覆盖情况，供测试用例设计参考。
+            </p>
+
+            <table class="vendor-table">
+                <thead>
+                    <tr>
+                        <th>功能项</th>
+                        <th>富士通<br>PaperStream Capture</th>
+                        <th>佳能<br>CaptureOnTouch</th>
+                        <th>爱普生<br>ScanSmart</th>
+                        <th>功能层级</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="5" style="background: var(--bg-secondary); font-weight: 600; text-align: left;">▎基础扫描功能</td></tr>
+                    <tr><td>设备枚举与选择</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>基础</td></tr>
+                    <tr><td>分辨率/DPI 设置</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>基础</td></tr>
+                    <tr><td>颜色模式切换</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>基础</td></tr>
+                    <tr><td>页面尺寸选择</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>基础</td></tr>
+                    <tr><td>ADF/平板切换</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>基础</td></tr>
+                    <tr><td>单面/双面扫描</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>基础</td></tr>
+                    <tr><td>扫描后预览</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>基础</td></tr>
+                    <tr><td>页面旋转/删除/重排</td><td class="check">✓</td><td class="partial">△</td><td class="check">✓</td><td>基础</td></tr>
+                    <tr><td>PDF/JPG/TIFF 输出</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>基础</td></tr>
+                    <tr><td>多页 PDF 合并</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>基础</td></tr>
+
+                    <tr><td colspan="5" style="background: var(--bg-secondary); font-weight: 600; text-align: left;">▎图像处理功能</td></tr>
+                    <tr><td>自动纠偏 (Deskew)</td><td class="check">✓</td><td class="partial">△</td><td class="partial">△</td><td>拓展</td></tr>
+                    <tr><td>自动裁边</td><td class="check">✓</td><td class="partial">△</td><td class="partial">△</td><td>拓展</td></tr>
+                    <tr><td>空白页剔除</td><td class="check">✓</td><td class="partial">△</td><td class="check">✓</td><td>拓展</td></tr>
+                    <tr><td>自动旋转</td><td class="check">✓</td><td class="partial">△</td><td class="partial">△</td><td>拓展</td></tr>
+                    <tr><td>背景平滑/去条纹</td><td class="check">✓</td><td class="cross">✕</td><td class="cross">✕</td><td>拓展</td></tr>
+                    <tr><td>打孔去除</td><td class="check">✓</td><td class="cross">✕</td><td class="cross">✕</td><td>拓展</td></tr>
+                    <tr><td>扫描后校正 (ASC)</td><td class="check">✓</td><td class="cross">✕</td><td class="cross">✕</td><td>拓展</td></tr>
+
+                    <tr><td colspan="5" style="background: var(--bg-secondary); font-weight: 600; text-align: left;">▎OCR 与数据提取</td></tr>
+                    <tr><td>可搜索 PDF</td><td class="check">✓</td><td class="partial">△</td><td class="check">✓</td><td>拓展</td></tr>
+                    <tr><td>全文 OCR</td><td class="check">✓</td><td class="cross">✕</td><td class="check">✓</td><td>拓展</td></tr>
+                    <tr><td>区域 OCR (Zonal)</td><td class="check">✓</td><td class="cross">✕</td><td class="cross">✕</td><td>拓展</td></tr>
+                    <tr><td>导出 Word/Excel</td><td class="check">✓</td><td class="cross">✕</td><td class="check">✓</td><td>拓展</td></tr>
+                    <tr><td>智能文件命名 (OCR)</td><td class="check">✓</td><td class="cross">✕</td><td class="check">✓</td><td>拓展</td></tr>
+
+                    <tr><td colspan="5" style="background: var(--bg-secondary); font-weight: 600; text-align: left;">▎条码与分类</td></tr>
+                    <tr><td>一维条码识别</td><td class="check">✓</td><td class="cross">✕</td><td class="cross">✕</td><td>拓展</td></tr>
+                    <tr><td>二维条码识别</td><td class="check">✓ (Pro)</td><td class="cross">✕</td><td class="cross">✕</td><td>高级</td></tr>
+                    <tr><td>Patch Code 分隔</td><td class="check">✓</td><td class="cross">✕</td><td class="cross">✕</td><td>高级</td></tr>
+                    <tr><td>智能文档分类</td><td class="check">✓</td><td class="cross">✕</td><td class="cross">✕</td><td>高级</td></tr>
+                    <tr><td>自定义索引字段</td><td class="check">✓</td><td class="cross">✕</td><td class="cross">✕</td><td>高级</td></tr>
+
+                    <tr><td colspan="5" style="background: var(--bg-secondary); font-weight: 600; text-align: left;">▎质量与自动化</td></tr>
+                    <tr><td>AIQC 质量检查</td><td class="check">✓</td><td class="cross">✕</td><td class="cross">✕</td><td>高级</td></tr>
+                    <tr><td>彩色边框异常标记</td><td class="check">✓</td><td class="cross">✕</td><td class="cross">✕</td><td>高级</td></tr>
+                    <tr><td>扫描模板/配置文件</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>基础</td></tr>
+                    <tr><td>一键快速扫描</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>基础</td></tr>
+                    <tr><td>批量任务队列</td><td class="check">✓</td><td class="partial">△</td><td class="partial">△</td><td>拓展</td></tr>
+
+                    <tr><td colspan="5" style="background: var(--bg-secondary); font-weight: 600; text-align: left;">▎集成与输出</td></tr>
+                    <tr><td>扫描至邮件</td><td class="check">✓</td><td class="check">✓</td><td class="partial">△</td><td>基础</td></tr>
+                    <tr><td>扫描至云盘</td><td class="check">✓</td><td class="cross">✕</td><td class="check">✓</td><td>拓展</td></tr>
+                    <tr><td>扫描至 SharePoint</td><td class="check">✓</td><td class="cross">✕</td><td class="cross">✕</td><td>高级</td></tr>
+                    <tr><td>扫描至 FTP/SFTP</td><td class="check">✓</td><td class="cross">✕</td><td class="cross">✕</td><td>高级</td></tr>
+                    <tr><td>ERP/CRM 系统集成</td><td class="check">✓ (Pro)</td><td class="cross">✕</td><td class="cross">✕</td><td>高级</td></tr>
+
+                    <tr><td colspan="5" style="background: var(--bg-secondary); font-weight: 600; text-align: left;">▎安全合规</td></tr>
+                    <tr><td>敏感信息脱敏</td><td class="check">✓ (Pro)</td><td class="cross">✕</td><td class="cross">✕</td><td>高级</td></tr>
+                    <tr><td>加密 PDF 输出</td><td class="check">✓</td><td class="cross">✕</td><td class="cross">✕</td><td>拓展</td></tr>
+                    <tr><td>操作审计日志</td><td class="check">✓ (Pro)</td><td class="cross">✕</td><td class="cross">✕</td><td>高级</td></tr>
+                </tbody>
+            </table>
+
+            <div class="legend">
+                <div class="legend-item"><span class="check">✓</span> 完整支持</div>
+                <div class="legend-item"><span class="partial">△</span> 部分支持或有限支持</div>
+                <div class="legend-item"><span class="cross">✕</span> 不支持</div>
+            </div>
+        </div>
+
+        <!-- Section 4: Test Case Mapping -->
+        <div class="section">
+            <div class="section-title">
+                <div class="icon" style="background: var(--accent-teal-light); color: var(--accent-teal);">📝</div>
+                测试用例映射建议
+            </div>
+
+            <div class="two-col">
+                <div class="summary-box blue">
+                    <h4>TWAIN 驱动层测试重点</h4>
+                    <p>
+                        <strong>基础功能必测：</strong>颜色模式、分辨率、页面尺寸、传输机制、设备在线检测、无 UI 扫描、ADF 进纸控制、纸张检测<br><br>
+                        <strong>拓展功能选测：</strong>双面扫描、重张检测、自动纠偏、自动裁边、空白页剔除、条码检测、自动颜色检测<br><br>
+                        <strong>兼容性测试：</strong>与主流上层软件（Photoshop、Acrobat、PaperStream）的 TWAIN 接口兼容性
+                    </p>
+                </div>
+                <div class="summary-box orange">
+                    <h4>上层软件测试重点</h4>
+                    <p>
+                        <strong>基础功能必测：</strong>设备管理、扫描控制、参数配置、图像预览、文件输出、异常处理<br><br>
+                        <strong>拓展功能选测：</strong>OCR 识别精度、图像处理效果（纠偏/裁边）、条码识别率、云服务连接稳定性、批量任务性能<br><br>
+                        <strong>用户体验测试：</strong>界面响应速度、大文件处理性能、多页文档操作流畅度
+                    </p>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <table class="compare-table">
+                    <thead>
+                        <tr>
+                            <th>测试阶段</th>
+                            <th>TWAIN 驱动测试项</th>
+                            <th>上层软件测试项</th>
+                            <th>优先级</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>P0 冒烟测试</strong></td>
+                            <td>设备发现、基础扫描、数据传输</td>
+                            <td>软件启动、设备连接、单页扫描保存</td>
+                            <td><span class="badge badge-required">最高</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>P1 基础功能</strong></td>
+                            <td>颜色/分辨率/尺寸设置、ADF 进纸、多页连续扫</td>
+                            <td>参数配置、预览编辑、多格式输出、异常提示</td>
+                            <td><span class="badge badge-basic">高</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>P2 拓展功能</strong></td>
+                            <td>双面扫描、重张检测、自动纠偏、条码检测</td>
+                            <td>OCR、图像处理、云服务、批量任务</td>
+                            <td><span class="badge badge-extend">中</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>P3 高级功能</strong></td>
+                            <td>补丁码、背书器、自动颜色检测</td>
+                            <td>智能分类、索引提取、系统集成、安全合规</td>
+                            <td><span class="badge badge-advanced">低</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>P4 兼容性</strong></td>
+                            <td>多软件 TWAIN 兼容性、协议合规性</td>
+                            <td>多设备支持、跨平台稳定性</td>
+                            <td><span class="badge badge-optional">可选</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; padding: 24px; color: var(--text-tertiary); font-size: 13px;">
+            <p>参考产品：富士通 PaperStream Capture / 佳能 CaptureOnTouch / 爱普生 ScanSmart | 用于扫描仪测试用例设计</p>
+        </div>
+    </div>
+</body>
+</html>
